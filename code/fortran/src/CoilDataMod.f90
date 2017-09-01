@@ -20,10 +20,10 @@ MODULE COIL_DATA
   !-------------------------------------------------------------------------------
   IMPLICIT NONE
   SAVE
-  LOGICAL :: SET_DATA = FALSE
+  LOGICAL :: DATA_SET = .FALSE.
   INTEGER :: NC,NS
   INTEGER,ALLOCATABLE :: NRHO(:,:),NZ(:,:)
-  REAL*8 :: I,THERMCOMP(2)
+  REAL*8 :: I
   REAL*8,ALLOCATABLE :: D(:,:)
   REAL*8,ALLOCATABLE :: W(:),THETA(:),PHI(:)
   REAL*8,ALLOCATABLE :: M(:,:),RI(:,:),RO(:,:)
@@ -32,12 +32,22 @@ MODULE COIL_DATA
 CONTAINS
   !-------------------------------------------------------------------------------
   SUBROUTINE SET_COIL_DATA(INC,II,ITHERMCOMP,IW,INS,IM,IRI,IRO,INRHO,INZ,ID,ITHETA,IPHI)
+    ! Sets variables and allocates memory. ITHERMCOMP is the only new variable.
+    !
+    ! ITHERMCOMP: double(2), thermal contraction factors for Cu and Al respectively
+    IMPLICIT NONE
+    INTEGER :: J
     INTEGER :: INC,INS
     INTEGER :: INRHO(INC,INS),INZ(INC,INS)
+    REAL*8 :: DELTAZ
     REAL*8 :: II,ITHERMCOMP(2)
     REAL*8 :: IW(INC),ITHETA(INC),IPHI(INC)
     REAL*8 :: ID(INC,3)
     REAL*8 :: IM(INC,INS),IRI(INC,INS),IRO(INC,INS)
+    !  Reset memory if data has previously been set
+    IF(DATA_SET)THEN
+       CALL DEALLOC_MEMORY()
+    ENDIF
     !   Allocate memory for arrays
     ALLOCATE(D(INC,3))
     ALLOCATE(NRHO(INC,INS),NZ(INC,INS))
@@ -49,17 +59,35 @@ CONTAINS
     NRHO = INRHO
     NZ = INZ
     I = II
-    THERMCOMP = ITHERMCOMP
-    W = IW
+    ! Apply copper thermal contraction to width and radius of coils
+    W = IW*ITHERMCOMP(1)
+    RI = IRI*ITHERMCOMP(1)
+    RO = IRO*ITHERMCOMP(1)
     THETA = ITHETA
     PHI = IPHI
     D = ID
+    ! Last coil remains fixed. Additional coils move along z-axis due to thermal
+    ! contraction of aluminum.
+    DO J=1,NC
+       IF(J.NE.NC)THEN
+          DELTAZ = ABS(D(J,3)-D(NC,3)) ! Distance to fixed coil
+          D(J,3) = ID(J,3)+DELTAZ*(1.D0-ITHERMCOMP(2))
+       ENDIF
+    ENDDO
     M = IM
-    RI = IRI
-    RO = IRO
-    SET_DATA = TRUE
+    DATA_SET = .TRUE.
     !
     RETURN
   END SUBROUTINE SET_COIL_DATA
+  !-------------------------------------------------------------------------------
+  SUBROUTINE DEALLOC_MEMORY()
+    ! Clears memory allocated for arrays
+    IMPLICIT NONE
+    DEALLOCATE (NRHO,NZ)
+    DEALLOCATE (D)
+    DEALLOCATE (W,THETA,PHI)
+    DEALLOCATE (M,RI,RO)
+    RETURN
+  END SUBROUTINE DEALLOC_MEMORY
   !-------------------------------------------------------------------------------
 END MODULE COIL_DATA

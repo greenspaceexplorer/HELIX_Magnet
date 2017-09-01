@@ -32,9 +32,9 @@ CONTAINS
     SP = SIN(PH)
     !   Rotation about z-axis
     RP(1,1) = CP
-    RP(1,2) = SP
+    RP(1,2) = -1.D0*SP
     RP(1,3) = 0.D0
-    RP(2,1) = -1.D0*SP
+    RP(2,1) = SP
     RP(2,2) = CP
     RP(2,3) = 0.D0
     RP(3,1) = 0.D0
@@ -43,19 +43,20 @@ CONTAINS
     !   Rotation about y-axis
     RT(1,1) = CT
     RT(1,2) = 0.D0
-    RT(1,3) = -1.D0*ST
+    RT(1,3) = ST
     RT(2,1) = 0.D0
     RT(2,2) = 1.D0
     RT(2,3) = 0.D0
-    RT(3,1) = ST
+    RT(3,1) = -1.D0*ST
     RT(3,2) = 0.D0
     RT(3,3) = CT
     !
     !   Left multiply RT by RP to get y,z axis rotation
+    RCW = 0.D0
+    RCCW = 0.D0
     DO I=1,3
        DO J=1,3
-          RCCW(I,J) = 0.D0
-          DO K=1,3
+           DO K=1,3
              RCCW(I,J) = RCCW(I,J) + RP(I,K)*RT(K,J)
           ENDDO
           !   SO(3) rotation matrices -> RCW = RCCW^T
@@ -78,6 +79,7 @@ CONTAINS
     INTEGER :: I,J
     REAL*8 :: X(3),XTEMP(3)
     !
+    XTEMP = 0.D0
     DO I = 1,3
        DO J = 1,3
           XTEMP(I) = XTEMP(I) + RCCW(I,J)*X(J)
@@ -99,7 +101,7 @@ CONTAINS
     INTEGER :: I,J
     REAL*8 :: X(3),XTEMP(3)
     !
-    !    XTEMP = (/0.D0,0.D0,0.D0/)
+     XTEMP = 0.D0
     DO I = 1,3
        DO J = 1,3
           XTEMP(I) = XTEMP(I) + RCW(I,J)*X(J)

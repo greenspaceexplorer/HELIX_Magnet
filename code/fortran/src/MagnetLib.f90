@@ -4,11 +4,10 @@
 !
 ! Author: Noah Green
 ! Created: August 21, 2017
-! Last Edited By: Noah Green
-! Last Edited: August 28, 2017
 !-------------------------------------------------------------------------------
 !
 SUBROUTINE HELIX_DATA(INC,II,ITHERMCOMP,IW,INS,IM,IRI,IRO,INRHO,INZ,ID,ITHETA,IPHI)
+  ! Wraps SET_COIL_DATA subroutine from COIL_DATA module.
   USE COIL_DATA
   IMPLICIT NONE
   INTEGER :: INC,INS
@@ -20,6 +19,16 @@ SUBROUTINE HELIX_DATA(INC,II,ITHERMCOMP,IW,INS,IM,IRI,IRO,INRHO,INZ,ID,ITHETA,IP
   CALL SET_COIL_DATA(INC,II,ITHERMCOMP,IW,INS,IM,IRI,IRO,INRHO,INZ,ID,ITHETA,IPHI)
   RETURN
 END SUBROUTINE HELIX_DATA
+!
+!-------------------------------------------------------------------------------
+!
+!!$SUBROUTINE CLEAR_DATA()
+!!$  ! Wraps DEALLOC_DATA subroutine from COIL_DATA module. 
+!!$  USE COIL_DATA
+!!$  IMPLICIT NONE
+!!$  CALL DEALLOC_DATA()
+!!$  RETURN
+!!$END SUBROUTINE CLEAR_DATA
 !
 !-------------------------------------------------------------------------------
 !
@@ -48,7 +57,9 @@ SUBROUTINE HELIX_MAGNET(N,X,B)
   REAL*8 :: XCOIL(3),BCOIL(3),DCOIL(3)
   REAL*8 :: MCOIL(NS),RICOIL(NS),ROCOIL(NS)
 
-  PRINT *,"NS = ",NS
+  IF (.NOT.DATA_SET)THEN ! Ensures data for magnet has been set
+     ERROR STOP "FORTRAN ERROR: MAGNET DATA NOT SET"
+  ENDIF
   !
   DO J=1,NC ! Iterate over main coils
      DO L=1,NS ! Get subcoil data for a single primary coil
@@ -57,32 +68,30 @@ SUBROUTINE HELIX_MAGNET(N,X,B)
         ROCOIL(L) = RO(J,L)
         NRHOCOIL(L) = NRHO(J,L)
         NZCOIL(L) = NZ(J,L)
-
-        DCOIL = (/D(J,1),D(J,2),D(J,3)/)
-        !
-        IF((THETA(J).EQ.0.D0).AND.(PHI(J).EQ.0.D0))THEN
-           CONTINUE
+     ENDDO
+     DCOIL = (/D(J,1),D(J,2),D(J,3)/)
+     !
+     IF((THETA(J).EQ.0.D0).AND.(PHI(J).EQ.0.D0))THEN
+        CONTINUE
+     ELSE
+        CALL RMATRIX(THETA(J),PHI(J)) ! Make rotation matrices
+     ENDIF
+     !
+     DO K=1,N ! Iterate over coordinates
+        BCOIL = (/0.D0,0.D0,0.D0/) ! Reset BCOIL for each coordinate
+        XCOIL = (/X(K,1),X(K,2),X(K,3)/) ! Get field calculation position
+        XCOIL = XCOIL - DCOIL ! Translate to coil origin
+        IF((THETA(J).NE.0.D0).OR.(PHI(J).NE.0.D0))THEN
+           CALL CW(XCOIL) ! Rotate to coil coordinates
+           CALL COIL(I,W(J),NS,MCOIL,RICOIL,ROCOIL,NRHOCOIL,NZCOIL,XCOIL,BCOIL)
+           CALL CCW(BCOIL) ! Rotate field to original coordinates
         ELSE
-           CALL RMATRIX(THETA(J),PHI(J)) ! Make rotation matrices
+           CALL COIL(I,W(J),NS,MCOIL,RICOIL,ROCOIL,NRHOCOIL,NZCOIL,XCOIL,BCOIL)
         ENDIF
-        !
-        DO K=1,N ! Iterate over coordinates
-           BCOIL = (/0.D0,0.D0,0.D0/) ! Reset BCOIL for each coordinate
-           XCOIL = (/X(K,1),X(K,2),X(K,3)/) ! Get field calculation position
-           XCOIL = XCOIL - DCOIL ! Translate to coil origin
-           IF((THETA(J).NE.0.D0).OR.(PHI(J).NE.0.D0))THEN
-              CALL CW(XCOIL) ! Rotate to coil coordinates
-              CALL COIL(I,W(J),NS,MCOIL,RICOIL,ROCOIL,NRHOCOIL,NZCOIL,XCOIL,BCOIL)
-              CALL CCW(BCOIL) ! Rotate field to original coordinates
-           ELSE
-              CALL COIL(I,W(J),NS,MCOIL,RICOIL,ROCOIL,NRHOCOIL,NZCOIL,XCOIL,BCOIL)
-           ENDIF
-           PRINT *,"COORDINATE",K,"COIL",J,"SUBCOIL",L,"BZ = ",BCOIL(3)*10000.D0
-           !       Add up field contributions
-           B(K,1) = B(K,1) + BCOIL(1)
-           B(K,2) = B(K,2) + BCOIL(2)
-           B(K,3) = B(K,3) + BCOIL(3)
-        ENDDO
+        !       Add up field contributions
+        B(K,1) = B(K,1) + BCOIL(1)
+        B(K,2) = B(K,2) + BCOIL(2)
+        B(K,3) = B(K,3) + BCOIL(3)
      ENDDO
   ENDDO
   RETURN
@@ -117,24 +126,25 @@ SUBROUTINE COIL(I,W,NS,M,RI,RO,NRHO,NZ,X,B)
   INTEGER :: NS
   INTEGER :: NRHO(NS),NZ(NS)
   REAL*8 :: I,W
-  REAL*8 :: X(3),B(3)
+  REAL*8 :: X(3),B(3),XIC(3)
   REAL*8 :: M(NS),RI(NS),RO(NS)
   REAL*8 :: BSUB(3),BTEMP(3)
   REAL*8 :: IIC,WRHO,DRHO,DZ,RIC,ZIC
   !
   DO J = 1,NS
-     IIC = I*M(J)/(REAL(NRHO(J)*NZ(J))) ! Current in ideal current loop
+     IIC = I*M(J)/(DBLE(NRHO(J)*NZ(J))) ! Current in ideal current loop
      WRHO = RO(J)-RI(J) ! Width of subcoil in rho direction
-     DRHO = WRHO/(REAL(NRHO(J))) ! Rho step size
-     DZ = W/(REAL(NZ(J)))  ! Z step size
+     DRHO = WRHO/(DBLE(NRHO(J))) ! Rho step size
+     DZ = W/(DBLE(NZ(J)))  ! Z step size
      BSUB(1) = 0.D0  ! Initialize subcoil field
      BSUB(2) = 0.D0
      BSUB(3) = 0.D0
      DO K = 1,NRHO(J)
-        RIC = RI(J)+WRHO*(REAL(K) - 0.5D0) ! Ideal coil radius
+        RIC = RO(J)-DRHO*(DBLE(K) - 0.5D0) ! Ideal coil radius
         DO L = 1,NZ(J)
-           ZIC = (REAL(L) - 0.5D0)*DZ - W/2.D0 ! Ideal coil z-displaceme
-           CALL IDEAL(IIC,RIC,X,BTEMP)
+           ZIC = (DBLE(L) - 0.5D0)*DZ - W/2.D0 ! Ideal coil z-displacement
+           XIC = (/X(1),X(2),X(3)-ZIC/)
+           CALL IDEAL(IIC,RIC,XIC,BTEMP)
            BSUB = BSUB+BTEMP
         ENDDO
      ENDDO
@@ -165,6 +175,7 @@ SUBROUTINE IDEAL(I,R,X,B)
   !
   D1 = (R+RHO)*(R+RHO)+X(3)*X(3)
   BB = 2.D-7*I/SQRT(D1)
+
   IF(RHO.EQ.0.D0)THEN
      B(1) = 0.D0
      B(2) = 0.D0
@@ -185,7 +196,7 @@ SUBROUTINE IDEAL(I,R,X,B)
      BRHO = (BB*X(3))/RHO*(N1*ELE/D2-ELK)
      B(1) = BRHO*COST
      B(2) = BRHO*SINT
-     B(3) = BB*(ELK+N2*ELE/D1)
+     B(3) = BB*(ELK+N2*ELE/D2)
   ENDIF
   RETURN
 END SUBROUTINE IDEAL
