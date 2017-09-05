@@ -37,13 +37,13 @@ CONTAINS
     ! ITHERMCOMP: double(2), thermal contraction factors for Cu and Al respectively
     IMPLICIT NONE
     INTEGER :: J
-    INTEGER :: INC,INS
-    INTEGER :: INRHO(INC,INS),INZ(INC,INS)
+    INTEGER,INTENT(IN) :: INC,INS
+    INTEGER,INTENT(IN) :: INRHO(INC,INS),INZ(INC,INS)
     REAL*8 :: DELTAZ
-    REAL*8 :: II,ITHERMCOMP(2)
-    REAL*8 :: IW(INC),ITHETA(INC),IPHI(INC)
-    REAL*8 :: ID(INC,3)
-    REAL*8 :: IM(INC,INS),IRI(INC,INS),IRO(INC,INS)
+    REAL*8,INTENT(IN) :: II,ITHERMCOMP(2)
+    REAL*8,INTENT(IN) :: IW(INC),ITHETA(INC),IPHI(INC)
+    REAL*8,INTENT(IN) :: ID(INC,3)
+    REAL*8,INTENT(IN) :: IM(INC,INS),IRI(INC,INS),IRO(INC,INS)
     !  Reset memory if data has previously been set
     IF(DATA_SET)THEN
        CALL DEALLOC_MEMORY()

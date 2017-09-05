@@ -44,6 +44,8 @@ SUBROUTINE HELIX_MAGNET(N,X,B)
   !   and oriented in xy plane. Calculates field and rotates components back to
   !   original coordinate system prior to exiting subroutine.
   !
+  !   TODO: OPTIMIZE TO BE CONSISTENT WITH COLUMN MAJOR OPERATIONS
+  !
   USE COIL_DATA
   USE ROTATION
   IMPLICIT NONE
@@ -51,7 +53,7 @@ SUBROUTINE HELIX_MAGNET(N,X,B)
   !   Input/output variables
   INTEGER,INTENT(IN) :: N
   REAL*8,INTENT(IN) :: X(N,3)
-  REAL*8,INTENT(INOUT) :: B(N,3)
+  REAL*8,INTENT(OUT) :: B(N,3)
   !   Local variables
   INTEGER :: NRHOCOIL(NS),NZCOIL(NS)
   REAL*8 :: XCOIL(3),BCOIL(3),DCOIL(3)
@@ -62,14 +64,14 @@ SUBROUTINE HELIX_MAGNET(N,X,B)
   ENDIF
   !
   DO J=1,NC ! Iterate over main coils
-     DO L=1,NS ! Get subcoil data for a single primary coil
-        MCOIL(L) = M(J,L)
-        RICOIL(L) = RI(J,L)
-        ROCOIL(L) = RO(J,L)
-        NRHOCOIL(L) = NRHO(J,L)
-        NZCOIL(L) = NZ(J,L)
-     ENDDO
-     DCOIL = (/D(J,1),D(J,2),D(J,3)/)
+     ! Get subcoil data for a single primary coil
+     MCOIL = M(J,:)
+     RICOIL = RI(J,:)
+     ROCOIL = RO(J,:)
+     NRHOCOIL = NRHO(J,:)
+     NZCOIL = NZ(J,:)
+     ! Get displacement of primary coil
+     DCOIL = D(J,:)
      !
      IF((THETA(J).EQ.0.D0).AND.(PHI(J).EQ.0.D0))THEN
         CONTINUE
@@ -78,8 +80,8 @@ SUBROUTINE HELIX_MAGNET(N,X,B)
      ENDIF
      !
      DO K=1,N ! Iterate over coordinates
-        BCOIL = (/0.D0,0.D0,0.D0/) ! Reset BCOIL for each coordinate
-        XCOIL = (/X(K,1),X(K,2),X(K,3)/) ! Get field calculation position
+        BCOIL = 0.D0 ! Reset BCOIL for each coordinate
+        XCOIL = X(K,:) ! Get field calculation position
         XCOIL = XCOIL - DCOIL ! Translate to coil origin
         IF((THETA(J).NE.0.D0).OR.(PHI(J).NE.0.D0))THEN
            CALL CW(XCOIL) ! Rotate to coil coordinates
@@ -89,9 +91,7 @@ SUBROUTINE HELIX_MAGNET(N,X,B)
            CALL COIL(I,W(J),NS,MCOIL,RICOIL,ROCOIL,NRHOCOIL,NZCOIL,XCOIL,BCOIL)
         ENDIF
         !       Add up field contributions
-        B(K,1) = B(K,1) + BCOIL(1)
-        B(K,2) = B(K,2) + BCOIL(2)
-        B(K,3) = B(K,3) + BCOIL(3)
+        B(K,:) = B(K,:) + BCOIL
      ENDDO
   ENDDO
   RETURN
@@ -123,11 +123,13 @@ SUBROUTINE COIL(I,W,NS,M,RI,RO,NRHO,NZ,X,B)
   !
   IMPLICIT NONE
   INTEGER :: J,K,L
-  INTEGER :: NS
-  INTEGER :: NRHO(NS),NZ(NS)
-  REAL*8 :: I,W
-  REAL*8 :: X(3),B(3),XIC(3)
-  REAL*8 :: M(NS),RI(NS),RO(NS)
+  INTEGER,INTENT(IN) :: NS
+  INTEGER,INTENT(IN) :: NRHO(NS),NZ(NS)
+  REAL*8,INTENT(IN) :: I,W
+  REAL*8,INTENT(IN) :: X(3)
+  REAL*8,INTENT(OUT) :: B(3)
+  REAL*8,INTENT(IN) :: M(NS),RI(NS),RO(NS)
+  REAL*8 :: XIC(3)
   REAL*8 :: BSUB(3),BTEMP(3)
   REAL*8 :: IIC,WRHO,DRHO,DZ,RIC,ZIC
   !
@@ -166,7 +168,9 @@ SUBROUTINE IDEAL(I,R,X,B)
   !   See Smythe 1950 pp 271 for details.
   !
   IMPLICIT NONE
-  REAL*8 :: I,R,RHO,PI,X(3),B(3) ! RHO = distance from origin in xy plane
+  REAL*8,INTENT(OUT) :: B(3)
+  REAL*8,INTENT(IN) :: I,R,X(3) ! RHO = distance from origin in xy plane
+  REAL*8 :: RHO,PI
   REAL*8 :: D1,D2,N1,N2,KSQ,KCSQ,KC,ELK,ELE,SINT,COST,BRHO,BB
   REAL*8 :: ELLIPI
   !
