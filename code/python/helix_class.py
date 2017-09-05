@@ -7,6 +7,15 @@ import helix_mag as hlx
 
 class helix():
     def __init__(self,gdat,cldat,scldat):
+        """
+        Initializes helix class object.
+
+        Input: 
+         gdat: General data spreadsheet
+         cldat: Coil data spreadsheet
+         scldat: Subcoil data spreadsheet
+         -Note: see ../../data for spreadsheet format
+        """
 
         # Read in general data spreadsheet
         self.__general_data = pd.read_csv(gdat)
@@ -67,17 +76,55 @@ class helix():
 
         # Send coil data to fortran code        
         hlx.helix_data(self.current,self.contraction,self.width,self.turns,self.ri,self.ro,self.nrho,self.nz,self.clposition,self.theta,self.phi)
-#    def __check_data(self):
-#    def __set_data(self):
-        
+    def print_general(self):
+        print(self.__general_data)
     def print_coil(self):
         print(self.__coil_data)
     def print_subcoil(self):
         print(self.__subcoil_data)
+    def set_coil_position(self,coil,position):
+        """
+        Changes position of coil.
+        
+        Input:
+         coil: integer, coil index in spreadsheet
+         position: list of doubles, (x,y,z) origin of coil
+        """
+        self.clx[coil] = position[0]
+        self.cly[coil] = position[1]
+        self.clz[coil] = position[2]
+        self.clposition[coil] = position
+        hlx.helix_data(self.current,self.contraction,self.width,self.turns,self.ri,self.ro,self.nrho,self.nz,self.clposition,self.theta,self.phi)
+    def set_coil_angle(self,coil,angle):
+        """
+        Changes angle of coil.
+
+        Input:
+         coil: integer, coil index in spreadsheet
+         angle: list of doubles, (theta,phi) angle of coil
+        """
+        self.theta[coil] = angle[0]
+        self.phi[coil] = angle[1]
+        hlx.helix_data(self.current,self.contraction,self.width,self.turns,self.ri,self.ro,self.nrho,self.nz,self.clposition,self.theta,self.phi)
     def ideal(self,i,r,x):
+        """
+        Calculates field of ideal coil at position x
+        
+        Input: 
+        """
         return hlx.ideal(i,r,x)
     def B(self,x):
+        """
+        Calculate the full HELIX magnetic field at points x.
+
+        Input:
+         x: list of list of doubles, xyz coordinates i.e. ((x1,y1,z1),...,(xn,yn,zn))
+        Returns: list of list of doubles, field values in cartesian coordinates i.e. ((Bx1,By1,Bz1),...,(Bxn,Byn,Bzn))         
+        """
         return hlx.helix_magnet(x)
+#    def __check_data(self):
+#    def __set_data(self):
+    
         
 
 
