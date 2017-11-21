@@ -1,4 +1,5 @@
 # HELIX Magnet Code
-## Files:
-* /code/python/helix_class.py contains class that can read magnet data from spreadsheets in /data and calculate magnetic field from HELIX magnet
-* /code/python/run.py has examples of how to use helix_class.py
+* To ensure that everything is properly compiled, please run HELIX_make.sh before trying to run code.
+* Code for fitting is in the code/python directory.
+** helix_class.py: module to interface with f2py shared object library
+** run.py: examples of how to use helix_class.py
