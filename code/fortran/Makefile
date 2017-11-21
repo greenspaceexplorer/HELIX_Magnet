@@ -24,4 +24,4 @@ $(HEATOBJ):$(HEATSRC)
 .PHONY: clean
 
 clean:
-	rm -f $(SDIR)/*.o $(SDIR)/*.mod $(SDIR)/*~ $(HEATDIR)/*.o $(HEATDIR)/*~ $(EXECUTABLE)
+	rm -f $(SDIR)/*.o $(SDIR)/*.so $(SDIR)/*.mod $(SDIR)/*~ $(HEATDIR)/*.o $(HEATDIR)/*~ $(EXECUTABLE)
