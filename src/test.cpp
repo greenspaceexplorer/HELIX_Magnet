@@ -6,7 +6,7 @@ using namespace std;
 
 int main(){
     
-    double current = 100.;
+    double current = 93.0;
     double radius = 0.01;
     Vector3d 
     // test ideal coil

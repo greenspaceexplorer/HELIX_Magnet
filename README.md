@@ -1,5 +1,6 @@
 # HELIX Magnet Code
-* To ensure that everything is properly compiled, please run HELIX_make.sh before trying to run code.
-* Code for fitting is in the code/python directory.
-* helix_class.py: module to interface with f2py shared object library
-* run.py: examples of how to use helix_class.py
+* Requirements: gsl
+* Format for running code is:
+        HELIX_MAGNET magnet_config.csv data1.csv (data2.csv ...)
+** First argument is a csv file with the magnet characteristics
+** Second argument and beyond are scan data files

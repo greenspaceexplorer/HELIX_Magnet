@@ -1,13 +1,13 @@
-IDIR=include
-SDIR=src
+IDIR=../include
+SDIR=../src
 DEPS_H=token_parser.h helix_magnet.h coil.h
 SOURCES_C=helix_magnet.cpp coil.cpp
-MAIN_C=main.cpp
+MAIN_C=test.cpp
 
 DEPS=$(addprefix $(IDIR)/,$(DEPS_H))
 SOURCESC=$(addprefix $(SDIR)/,$(SOURCES_C) $(MAIN_C))
 CC=g++
-EXECUTABLE=HELIX_MAGNET
+EXECUTABLE=test_cpp
 OBJECTSC=$(SOURCESC:.cpp=.o)
 CFLAGS=-I$(IDIR) -lgsl -lgslcblas -std=c++11
 
