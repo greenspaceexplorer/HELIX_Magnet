@@ -230,6 +230,7 @@ void coil::set_z_elements(vector<unsigned int> &e_z){
 //------------------------------------------------------------------------------
 void coil::print_coil_info(){
     AngleAxisd rotation_aa(coil_rotation);
+    cout << coil_rotation << endl;
     Vector3d rotation_axis = rotation_aa.axis();
     cout << "Current = " << current << " A" << endl;
     cout << "Width = " << width << " m" << endl;

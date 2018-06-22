@@ -1,27 +1,17 @@
-SDIR=src
-HEATDIR=heatsrc
-HEATSRC=$(HEATDIR)/heat_mag.f90
-HEATOBJ=$(HEATSRC:.f90=.o)
-EXECUTABLE=helixtest
-PROGRAMF=HELIXtest.f90
-SOURCESF=MagnetLib.f90
-MODULESF=RotationMod.f90 CoilDataMod.f90
-OBJECTSF=$(MODULESF:.f90=.o)
+SDIR=heatsrc
+SOURCES_F=heat_mag.f90
+MAIN_F=test.f90
+SOURCESF=$(addprefix $(SDIR)/,$(SOURCES_F) $(MAIN_F))
 FC=gfortran
-FFLAGS=
+EXECUTABLE=test_f
 
-$(EXECUTABLE): $(patsubst %,$(SDIR)/%,$(SOURCESF) $(OBJECTSF) $(PROGRAMF)) $(HEATOBJ)
-	mv -f *.mod $(SDIR) || true
-	$(FC) -o $@ $^ $(FFLAGS)
+all: $(EXECUTABLE) $(SOURCESF)
 
-$(SDIR)/%Mod.o: $(SDIR)/%Mod.f90
-	$(FC) -c $< -o $@
-
-$(HEATOBJ):$(HEATSRC)
-	$(FC) -c $< -o $@ 
+$(EXECUTABLE): $(SOURCESF)
+	$(FC) -o $@ $(SOURCESF)
 
 
 .PHONY: clean
 
 clean:
-	rm -f $(SDIR)/*.o $(SDIR)/*.so $(SDIR)/*.mod $(SDIR)/*~ $(HEATDIR)/*.o $(HEATDIR)/*~ $(EXECUTABLE)
+	rm -f $(SDIR)/*.o  $(EXECUTABLE)

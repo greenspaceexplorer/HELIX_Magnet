@@ -13,8 +13,8 @@ current,93.0
 width,0.075818
 rotation_angleaxis,0.0,0.0,0.0
 origin,0.0,0.0,0.359747
-inner_radius,0.203517,0.215011,0.234632
-outer_radius,0.215011,0.234632,0.255224
-subcoil_turns,1995.9,5150.0,5489.5
+inner_radius,0.203492,0.214732,0.234709
+outer_radius,0.214731,0.234709,0.256222
+subcoil_turns,1976.0,5110.0,5486.7
 subcoil_rho_div,8,8,8
 subcoil_z_div,52,32,32
