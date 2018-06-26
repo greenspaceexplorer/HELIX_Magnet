@@ -54,3 +54,7 @@ void helix::print_magnet_info(){
         coil_vec[i].print_coil_info();
     }
 }
+
+void helix::save_magnet_info(){
+
+}
